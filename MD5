@@ -1,0 +1,17 @@
+25cb20a149930dbede0c7af3fdc88700 *DESCRIPTION
+f742d17bb6f3c479d2bfddfda081abe5 *NAMESPACE
+ad079e5dcb2d6203f0fc4cdf9c419f37 *R/RcppExports.R
+de7e43d9bfdd1d9c15a3bb334e14eb54 *R/header.R
+2cea7f48dbaf936fe8ef95542022f075 *data/maize1.rda
+952ea4f2d98bd531a4eea3e239886355 *data/maize2.rda
+31267b24e7a2e45310a68fd594b8cef8 *man/cmenet.Rd
+c635a4248e006dce3c92ffc99d06cd52 *man/cv.cmenet.Rd
+25d3a81eb0d2be59637516897a3e5363 *man/full.model.mtx.Rd
+dd4518bde8b5b84729762b122c4858ea *man/maize1.Rd
+ce830971a36ff7e293136aefb3fdb015 *man/maize2.Rd
+c679ef4f2ddd328f12d5180cccfdd4b0 *man/predictcme.Rd
+21559176d9b2f736ae38841f97f0ee21 *src/Makevars
+6e1fe49e36f3dd0f234e79137eab76bf *src/RcppExports.cpp
+9ae8020f9579edc4c33271a38a946ca5 *src/cme.cpp
+12e514be6b57c708dba373b03b5db48e *src/getModelMtx.cpp
+38c0955bed0b5b93422cd7ec187fcbf6 *src/init.c

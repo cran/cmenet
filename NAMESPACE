@@ -1,0 +1,7 @@
+export(full.model.mtx,predictcme,cmenet,cv.cmenet)
+import(Rcpp)
+import(glmnet)
+import(hierNet)
+importFrom("stats", "median")
+importFrom("utils", "setTxtProgressBar", "txtProgressBar")
+useDynLib(cmenet)
