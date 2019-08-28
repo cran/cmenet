@@ -15,15 +15,15 @@
   \item{newx}{An \eqn{m} x \eqn{p} binary matrix for prediction (\eqn{m} new ME settings, \eqn{p} binary MEs).}
 }
 \examples{
-  \donttest{
+  \dontrun{
 
     library(MASS)
     n <- 50 #number of observations
     p <- 50 #number of main effects
 
     ## Simulate model matrix for MEs and CMEs
-    set.seed(1000)
-    rho <- 0.5 #correlation
+    set.seed(1)
+    rho <- 0.25 #correlation
     ones <- matrix(1,p,p)
     covmtx <- rho*ones+(1-rho)*diag(p)
     latmtx <- mvrnorm(n,p,mu=rep(0,p),Sigma=covmtx) #equicorrelated cov. matrix
@@ -47,42 +47,20 @@
     xme <- model.mtx[,1:p]
     xcme <- model.mtx[,(p+1):ncol(model.mtx)]
 
-    #---------------------------------------------------------------
-    # Prediction:
-    #---------------------------------------------------------------
-
-    ## cmenet (parameters tuned via cross-validation)
-    cv.cme <- cv.cmenet(xme, xcme, y, var.names=colnames(model.mtx))
-
-    ## lasso
-    library(glmnet)
-    cv.las <- cv.glmnet(cbind(xme,xcme),y)
-    fit.las <- glmnet(cbind(xme,xcme),y)
-
-    ## sparsenet (load from CRAN archive)
-    # library(sparsenet)
-    # cv.sn <- cv.sparsenet(cbind(xme,xcme),y)
-    # fit.sn <- sparsenet(cbind(xme,xcme),y)
-
-    ## estimate MSPE
-    set.seed(1000)
-    ntst <- 50
+    ## Prediction on a testing set
+    set.seed(2)
+    ntst <- 1000
     latmtx <- mvrnorm(ntst,p,mu=rep(0,p),Sigma=covmtx)
     memtx <- (latmtx>=0)-(latmtx<0)
     tst.mtx <- full.model.mtx(memtx)$model.mtx
     xbtst <- inter + rowSums(tst.mtx[,ind])
     ytst <- xbtst + rnorm(ntst,sd=1)
 
+    cv.cme <- cv.cmenet(xme, xcme, y, var.names=colnames(model.mtx))
     pred.cme <- predictcme(fit.cme,newx=tst.mtx)
     pred.cme <- pred.cme[,which(cv.cme$lambda.sib==cv.cme$params[1]),
                 which(cv.cme$lambda.cou==cv.cme$params[2])]
-    pred.las <- predict(fit.las,newx=tst.mtx)[,which(cv.las$lambda==cv.las$lambda.min)]
-    # pred.sn <- predict(fit.sn,newx=tst.mtx)
-    # pred.sn <- pred.sn[[which(fit.sn$gamma==cv.sn$parms.min[1])]][,
-    #             which(fit.sn$lambda==cv.sn$parms.min[2])]
-    mean( (ytst-pred.cme)^2 ) # cmenet:    1.67
-    mean( (ytst-pred.las)^2 ) # lasso:     1.85
-    # mean( (ytst-pred.sn)^2 )  # sparsenet: 1.81
+    mean( (ytst-pred.cme)^2 )
 
 
   }

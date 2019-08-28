@@ -267,7 +267,8 @@ bool coord_des_onerun(int pme, int nn, NumericVector& lambda, NumericVector& cur
       for (int k=0;k<nn;k++){
         inprod += (resid[k]*X_me[j*nn+k]);
       }
-      inprod = inprod/((double)nn)+beta_me[j];
+      // inprod = inprod/((double)nn)+beta_me[j];
+      inprod = inprod/((double)nn)+(((double)nn)-1)/((double)nn)*beta_me[j];
 
       //Update cur_delta
       cur_delta[0] = delta_sib[j];
@@ -321,7 +322,8 @@ bool coord_des_onerun(int pme, int nn, NumericVector& lambda, NumericVector& cur
         for (int l=0;l<nn;l++){
           inprod += (resid[l]*X_cme[cmeind*nn+l]);
         }
-        inprod = inprod/((double)nn)+beta_cme[cmeind];
+        // inprod = inprod/((double)nn)+beta_cme[cmeind];
+        inprod = inprod/((double)nn)+(((double)nn)-1)/((double)nn)*beta_cme[cmeind];
 
         //Perform CME thresholding
         beta_cme[cmeind] = s_me(inprod,lambda,gamma,cur_delta);
@@ -554,6 +556,7 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
   }
   double inprod = 0.0; //inner product
   double thresh = 0.0; //threshold for screening
+  int num_act = 0;
 
   vector<bool> kkt_v_me(pme,true);
   vector<bool> kkt_v_cme(pcme,true); //KKT checks
@@ -590,7 +593,7 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
         for (int i=0;i<nn;i++){//reset residuals
           resid[i] = yy(i) - ymean;
         }
-        int num_act = 0;
+        num_act = 0;
         for (int i=0;i<pme;i++){//reset active flag
           act_me[i] = true;
           scr_me[i] = true;
@@ -606,6 +609,17 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
           goto cycend;
         }
       }
+
+      // // // RESET AFTER EACH RUN
+      // for (int i=0;i<pme;i++){//reset beta
+      //   beta_me[i] = 0.0;
+      // }
+      // for (int i=0;i<pcme;i++){
+      //   beta_cme[i] = 0.0;
+      // }
+      // for (int i=0;i<nn;i++){//reset residuals
+      //   resid[i] = yy(i) - ymean;
+      // }
 
       //Recompute deltas
       fill(delta_sib.begin(),delta_sib.end(),lambda[0]);
@@ -662,6 +676,7 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
         chng_flag = false; //change flag
 
         while (cont){
+          // cout << it_inner << endl;
 
           //Increment count and update flags
           it_inner ++;
@@ -750,16 +765,6 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
                        Named("gamma") = gamma,
                        Named("tau") = tau,
                        Named("y") = yy
-                       // Named("inter") = inter_mat,
-                       // Named("delta_sib") = delta_sib_cube,
-                       // Named("delta_cou") = delta_cou_cube,
-                       // Named("scr") = scr_cube,
-                       // Named("kkt_me) = kkt_v_me,
-                       // Named("kkt_cme") = kkt_v_cme,
-                       // Named("act_me") = act_me,
-                       // Named("act_cme") = act_cme,
-                       // Named("niter") = it_inner,
-                       // Named("it_max") = it_max_reset
   ));
 
 }

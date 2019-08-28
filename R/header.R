@@ -75,9 +75,9 @@ cmenet <- function(xme, xcme, y,
                    lambda.cou=exp(seq(from=log(max.lambda),to=log(max.lambda*1e-6),length=20)),
                    max.lambda=lambda0.cme(cbind(xme,xcme),y),
                    gamma=1/(0.5-tau)+0.001, tau=0.01,
-                   act.vec=rep(-1,ncol(xme)+ncol(xcme)),
+                   act.vec=rep(1,ncol(xme)+ncol(xcme)),
                    beta0=rep(0,ncol(xme)+ncol(xcme)),
-                   it.max=10, it.warm=3, lambda.flg=T){
+                   it.max=250, lambda.flg=T){
 
   #lambda.flg - T if grid over lambda, F otherwise
 
@@ -98,7 +98,7 @@ cmenet <- function(xme, xcme, y,
   ret <- cme(xme.sc, xcme.sc, y,
              lambda.sib, lambda.cou, gamma, tau,
              xme.sl, xcme.sl, beta0, act.vec,
-             max.lambda, it.max, it.warm, 1, F)
+             max.lambda, it.max, 0, 1, F)
 
   #Compute intercept
   if (lambda.flg){
@@ -123,13 +123,14 @@ cmenet <- function(xme, xcme, y,
   return(ret)
 }
 
+
 #CV tuning for CME
 cv.cmenet <- function(xme, xcme, y,
                       nfolds = 10, var.names = NULL,
                       nlambda.sib=20, nlambda.cou=20, lambda.min.ratio=1e-6,
-                      ngamma=10, max.gamma=150, ntau=20, max.tau=0.01,
-                      tau.min.ratio=ifelse(length(y)/(ncol(xme)+ncol(xcme))<0.25,0.002,0.01),
-                      it.max=10, it.warm = 3, warm.str="lasso"){
+                      ngamma=10, max.gamma=150, ntau=20,
+                      max.tau=0.01, tau.min.ratio=0.01,
+                      it.max=250, it.max.cv=25, warm.str="lasso"){
 
   #Set parameter limits
   min.tau <- max.tau*tau.min.ratio
@@ -219,7 +220,7 @@ cv.cmenet <- function(xme, xcme, y,
   cvm.gt.bst <- c()
   cvm.lambda.bst <- c()
   # if (warm.lam=="median"){
-    parms1.min <- c(median(lambda.sib), median(lambda.cou))
+  parms1.min <- c(median(lambda.sib), median(lambda.cou))
   # }else{
   #   parms1.min <- c(min(lambda.sib), min(lambda.cou))
   # }
@@ -233,73 +234,73 @@ cv.cmenet <- function(xme, xcme, y,
 
   # for (kk in 1:nrep){
 
-    ## (1) Tuning gammas and tau:
-    predmat = array(NA, c(n, length(tau_vec), length(gamma_vec)))
+  ## (1) Tuning gammas and tau:
+  predmat = array(NA, c(n, length(tau_vec), length(gamma_vec)))
 
-    #Perform N-fold CV
-    print(paste0("Tuning gamma & tau: "))
-    pb <- txtProgressBar(style=3, width=floor(getOption("width")/2))
-    for (i in seq(nfolds)){
-      setTxtProgressBar(pb,i/nfolds)
-      which = (foldid == i)
-      fitobj <- cmenet(xme=xme[!which,,drop=F],xcme=xcme[!which,,drop=F],y=y[!which],
-                       lambda.sib=parms1.min[1], lambda.cou=parms1.min[2], lambda.flg=F,
-                       gamma=gamma_vec, tau=tau_vec,
-                       act.vec=act.vec, max.lambda=max.lambda,
-                       it.max=it.max,it.warm=it.warm)
-      xtest <- xmat[which,,drop=F]
-      predmat[which,,] <- (predictcme(fitobj,xtest) - y[which])^2
-    }
-    cat('\n')
+  #Perform N-fold CV
+  print(paste0("Tuning gamma & tau: "))
+  pb <- txtProgressBar(style=3, width=floor(getOption("width")/2))
+  for (i in seq(nfolds)){
+    setTxtProgressBar(pb,i/nfolds)
+    which = (foldid == i)
+    fitobj <- cmenet(xme=xme[!which,,drop=F],xcme=xcme[!which,,drop=F],y=y[!which],
+                     lambda.sib=parms1.min[1], lambda.cou=parms1.min[2], lambda.flg=F,
+                     gamma=gamma_vec, tau=tau_vec,
+                     act.vec=act.vec, max.lambda=max.lambda,
+                     it.max=it.max.cv)
+    xtest <- xmat[which,,drop=F]
+    predmat[which,,] <- (predictcme(fitobj,xtest) - y[which])^2
+  }
+  cat('\n')
 
-    #Compute mean of cv error
-    cvm.gt <- t(apply(predmat,c(2,3),mean))
-    # cvm.gt <- apply(predmat,c(2,3),mean) #ch
-    whichmin = argmin(cvm.gt) #select tau and gamma
-    ind2.min = whichmin
-    parms2.min = c(gamma_vec[whichmin[1]], tau_vec[whichmin[2]])
+  #Compute mean of cv error
+  cvm.gt <- t(apply(predmat,c(2,3),mean))
+  # cvm.gt <- apply(predmat,c(2,3),mean) #ch
+  whichmin = argmin(cvm.gt) #select tau and gamma
+  ind2.min = whichmin
+  parms2.min = c(gamma_vec[whichmin[1]], tau_vec[whichmin[2]])
 
-    ## (2) Tuning lambdas:
-    lambda.sib <- exp(seq(from = log(max.lambda), to = log(max.lambda * lambda.min.ratio), length = nlambda.sib))
-    lambda.cou <- exp(seq(from = log(max.lambda), to = log(max.lambda * lambda.min.ratio), length = nlambda.cou))
-    predmat = array(NA, c(n, nlambda.sib, nlambda.cou))
-    cvm <- matrix(NA,nlambda.sib,nlambda.cou)
+  ## (2) Tuning lambdas:
+  lambda.sib <- exp(seq(from = log(max.lambda), to = log(max.lambda * lambda.min.ratio), length = nlambda.sib))
+  lambda.cou <- exp(seq(from = log(max.lambda), to = log(max.lambda * lambda.min.ratio), length = nlambda.cou))
+  predmat = array(NA, c(n, nlambda.sib, nlambda.cou))
+  cvm <- matrix(NA,nlambda.sib,nlambda.cou)
 
-    #Perform N-fold CV
-    if (nfolds < 3){
-      stop("nfolds must be bigger than 3; nfolds=10 recommended")
-    }
-    print(paste0("Tuning lambdas: "))
-    pb <- txtProgressBar(style=3, width=floor(getOption("width")/2))
-    for (i in seq(nfolds)){
-      setTxtProgressBar(pb,i/nfolds)
-      which = (foldid == i)
-      fitobj <- cmenet(xme=xme[!which,,drop=F], xcme=xcme[!which,,drop=F], y=y[!which],
-                       lambda.sib=lambda.sib, lambda.cou=lambda.cou, lambda.flg=T,
-                       gamma=parms2.min[1], tau=parms2.min[2],
-                       act.vec=act.vec, max.lambda=max.lambda,
-                       it.max=it.max,it.warm=it.warm)
-      xtest <- xmat[which,,drop=F]
-      predmat[which,,] <- (predictcme(fitobj,xtest) - y[which])^2
-    }
-    cat('\n')
+  #Perform N-fold CV
+  if (nfolds < 3){
+    stop("nfolds must be bigger than 3; nfolds=10 recommended")
+  }
+  print(paste0("Tuning lambdas: "))
+  pb <- txtProgressBar(style=3, width=floor(getOption("width")/2))
+  for (i in seq(nfolds)){
+    setTxtProgressBar(pb,i/nfolds)
+    which = (foldid == i)
+    fitobj <- cmenet(xme=xme[!which,,drop=F], xcme=xcme[!which,,drop=F], y=y[!which],
+                     lambda.sib=lambda.sib, lambda.cou=lambda.cou, lambda.flg=T,
+                     gamma=parms2.min[1], tau=parms2.min[2],
+                     act.vec=act.vec, max.lambda=max.lambda,
+                     it.max=it.max.cv)
+    xtest <- xmat[which,,drop=F]
+    predmat[which,,] <- (predictcme(fitobj,xtest) - y[which])^2
+  }
+  cat('\n')
 
-    #Compute mean of cv error
-    cvm.lambda <- apply(predmat,c(2,3),mean)
-    whichmin = argmin(cvm.lambda) #select lambdas
-    ind1.min = whichmin
-    parms1.min = c(lambda.sib[whichmin[1]], lambda.cou[whichmin[2]])
-    parms.min <- c(parms1.min,parms2.min)
+  #Compute mean of cv error
+  cvm.lambda <- apply(predmat,c(2,3),mean)
+  whichmin = argmin(cvm.lambda) #select lambdas
+  ind1.min = whichmin
+  parms1.min = c(lambda.sib[whichmin[1]], lambda.cou[whichmin[2]])
+  parms.min <- c(parms1.min,parms2.min)
 
-    #Pick the replicate with best cv err
-    # print(min(cvm.lambda))
-    # print(min.err)
-    # if (min(cvm.lambda)<min.err){
-    #   parms.min.bst <- parms.min
-    #   min.err <- min(cvm.lambda)
-    #   cvm.gt.bst <- cvm.gt
-    #   cvm.lambda.bst <- cvm.lambda
-    # }
+  #Pick the replicate with best cv err
+  # print(min(cvm.lambda))
+  # print(min.err)
+  # if (min(cvm.lambda)<min.err){
+  #   parms.min.bst <- parms.min
+  #   min.err <- min(cvm.lambda)
+  #   cvm.gt.bst <- cvm.gt
+  #   cvm.lambda.bst <- cvm.lambda
+  # }
   # }
 
   ##Summarize into list
@@ -315,7 +316,7 @@ cv.cmenet <- function(xme, xcme, y,
                    lambda.sib=lambda.sib, lambda.cou=lambda.cou, lambda.flg=T,
                    gamma=obj$params[3], tau=obj$params[4],
                    act.vec=act.vec, max.lambda=max.lambda,
-                   it.max=it.max,it.warm=it.warm)
+                   it.max=it.max)
   obj$cme.fit <- fitall
   obj$select.idx <- which(fitall$coefficients[,which(lambda.sib==obj$params[1]),which(lambda.cou==obj$params[2])] != 0)
   obj$select.names <- var.names[obj$select.idx]
@@ -324,7 +325,6 @@ cv.cmenet <- function(xme, xcme, y,
   return(obj)
 
 }
-
 argmin <- function (x){ #function from package "sparsenet"
   vx = as.vector(x)
   imax = order(vx)[1]

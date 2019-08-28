@@ -1,28 +1,28 @@
-\name{maize2}
-\alias{maize2}
+\name{maize}
+\alias{maize}
 \docType{data}
 \title{
-  Maize dataset 2
+  Maize dataset
 }
 \description{
-  Another subset of the maize dataset from Buckler et al. (2009), with \code{n} = 150 observations (days to male flowering time) and \code{p} = 40 main effects (binary gene markers).
+  A subset of the maize dataset from Buckler et al. (2009), with \code{n} = 150 observations (days to male flowering time) and \code{p} = 40 main effects (binary SNP markers).
 }
 \usage{
-data(maize2)
+data(maize)
 }
 \references{
 Buckler et al. (2009). The genetic architecture of maize flowering time. \emph{Science} 325, 714-718.
 }
 \examples{
-  \donttest{
+  \dontrun{
 
     library(cmenet)
     library(hierNet)
 
     ## Load data
-    data(maize2) #load in main effects (MEs) and response
-    xme <- as.matrix(maize2[,1:(ncol(maize2)-1)])
-    yy <- as.vector(maize2[,ncol(maize2)])
+    data(maize) #load in main effects (MEs) and response
+    xme <- as.matrix(maize1[,1:(ncol(maize1)-1)])
+    yy <- as.vector(maize1[,ncol(maize1)])
     nn <- nrow(xme)
     pp <- ncol(xme)
     model.mtx <- full.model.mtx(xme)$model.mtx #full model matrix
@@ -40,7 +40,7 @@ Buckler et al. (2009). The genetic architecture of maize flowering time. \emph{S
     cv.cme$select.names #selected effects
     summary(cme.glm)$coefficients[,4] #p-values
 
-    ## Selection: hierNet (traditional analysis: MEs and two-factor interactions)
+    ## hierNet (traditional analysis: MEs and two-factor interactions)
     set.seed(1000)
     hnp <- hierNet.path(xme,yy) #hierNet path
     cv.hn <- hierNet.cv(hnp,xme,yy) #CV fit
@@ -67,15 +67,22 @@ Buckler et al. (2009). The genetic architecture of maize flowering time. \emph{S
     #---------------------------------------------------------------
     ## Analysis of selected effects:
     # (a) cmenet: more parsimonious gene-gene interaction model
-    #     - hierNet: 27 variables
-    #     - cmenet:  7 variables
-    # (b) cmenet: selected CMEs are more interpretable than selected
-    #     interactions from traditional analysis (w/ lower p-values)
-    #     - hierNet: g9*g28  (1.1x10^-1), g28*g37  (7.1x10^-2), g28*g38  (5.2x10^-2)
-    #     - cmenet:  g9|g28- (5.6x10^-4), g37|g28- (4.6x10^-5), g38|g28- (1.0x10^-2)
+    #     - hierNet: 66 variables
+    #     - cmenet:  17 variables
+    # (b) cmenet: greater insight on the conditional structure of
+    #     selected MEs from traditional analysis (w/ lower p-values)
+    #     - hierNet: g38
+    #     - cmenet:  g11|g38+, g12|g38-, g14|g38+
     #     Interpretation:
-    #     - hierNet: interactions exist b/w g9 & g28, g28 & g37, and g28 & g38
-    #     - cmenet:  gene 28 inhibits gene 9, 37 and 38 (CME coupling)
+    #     - hierNet: gene 38 is active
+    #     - cmenet: gene 38 activates genes 11 and 14, and inhibits gene 12
+    # (c) cmenet: selected CMEs are more interpretable than selected
+    #     interactions from traditional analysis (w/ lower p-values)
+    #     - hierNet: g1*g39, g27*g39
+    #     - cmenet:  g1|g39-, g27|g39-
+    #     Interpretation:
+    #     - hierNet: interactions exist b/w g1 & g39, and g27 & g39
+    #     - cmenet:  gene 39 inhibits gene 1 and gene 27
     #---------------------------------------------------------------
 
     #---------------------------------------------------------------
@@ -105,9 +112,9 @@ Buckler et al. (2009). The genetic architecture of maize flowering time. \emph{S
       mspe1[i] <- mean( (yy.ts-pred[,which(cv.cme$lambda.sib==cv.cme$params[1]),
                                    which(cv.cme$lambda.cou==cv.cme$params[2])])^2 )
     }
-    mean(mspe1) #avg. mspe = 9.62
+    mean(mspe1) #avg. mspe = 10.04
 
-    ## Prediction: hierNet (traditional analysis)
+    ## hierNet (traditional analysis)
     set.seed(1)
     test.prop <- 0.2 # % for testing
     ntrials <- 25 # no. of replications
@@ -130,12 +137,12 @@ Buckler et al. (2009). The genetic architecture of maize flowering time. \emph{S
       mspe2[i] <- mean( (yy.ts-predict(hnfit,newx=xme.ts)[,l.opt])^2 )
     }
 
-    mean(mspe2) #avg. mspe = 11.46
+    mean(mspe2) #avg. mspe = 10.90
 
     #---------------------------------------------------------------
-    ## Analysis of prediction error:
-    # - cmenet gives lower MSPE, which suggests underlying
-    #   gene-gene interactions may indeed be conditional
+    ## Analysis of MSPE:
+    # - cmenet gives lower prediction error, which suggests
+    #   underlying gene-gene interactions may indeed be conditional
     #---------------------------------------------------------------
 
   }

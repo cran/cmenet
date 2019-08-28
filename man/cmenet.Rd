@@ -8,14 +8,14 @@
   \code{cmenet} performs variable selection of conditional main effects (CMEs) via a bi-level penalization framework, given fixed penalty parameters.
 }
 \usage{
-  cmenet(xme, xcme, y,
-        lambda.sib=exp(seq(from=log(max.lambda),to=log(max.lambda*1e-6),length=20)),
-        lambda.cou=exp(seq(from=log(max.lambda),to=log(max.lambda*1e-6),length=20)),
-        max.lambda=lambda0.cme(cbind(xme,xcme),y),
-        gamma=1/(0.5-tau)+0.001, tau=0.01,
-        act.vec=rep(-1,ncol(xme)+ncol(xcme)),
-        beta0=rep(0,ncol(xme)+ncol(xcme)),
-        it.max=10, it.warm=3, lambda.flg=T)
+cmenet(xme, xcme, y,
+          lambda.sib=exp(seq(from=log(max.lambda),to=log(max.lambda*1e-6),length=20)),
+          lambda.cou=exp(seq(from=log(max.lambda),to=log(max.lambda*1e-6),length=20)),
+          max.lambda=lambda0.cme(cbind(xme,xcme),y),
+          gamma=1/(0.5-tau)+0.001, tau=0.01,
+          act.vec=rep(1,ncol(xme)+ncol(xcme)),
+          beta0=rep(0,ncol(xme)+ncol(xcme)),
+          it.max=250, lambda.flg=T)
 }
 \arguments{
   \item{xme}{An \eqn{n} x \eqn{p} binary model matrix for MEs.}
@@ -28,8 +28,7 @@
   \item{tau}{Coupling parameter for CMEs.}
   \item{act.vec}{A (\eqn{p}+4*choose(\eqn{p},2))-length binary vector for setting which variables are always active in optimization.}
   \item{beta0}{Initial regression coefficients.}
-  \item{it.max}{Number of iterations after warm start.}
-  \item{it.warm}{Number of iterations in warm start.}
+  \item{it.max}{Number of optimization iterations.}
   \item{lambda.flg}{Use the default option TRUE (unless within \code{cv.cmenet}).}
 }
 \value{
@@ -41,13 +40,14 @@
 Mak and Wu (2018). cmenet: a new method for bi-level variable selection of conditional main effects. \emph{Journal of the American Statistical Association}, to appear.
 }
 \examples{
+\dontrun{
     library(MASS)
     n <- 50 #number of observations
     p <- 50 #number of main effects
 
     ## Simulate model matrix for MEs and CMEs
-    set.seed(1000)
-    rho <- 0.5 #correlation
+    set.seed(1)
+    rho <- 0.25 #correlation
     ones <- matrix(1,p,p)
     covmtx <- rho*ones+(1-rho)*diag(p)
     latmtx <- mvrnorm(n,p,mu=rep(0,p),Sigma=covmtx) #equicorrelated cov. matrix
@@ -73,4 +73,5 @@ Mak and Wu (2018). cmenet: a new method for bi-level variable selection of condi
 
     # Run cmenet
     fit.cme <- cmenet(xme, xcme, y)
+}
 }

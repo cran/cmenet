@@ -24,7 +24,8 @@
     p <- 50 #number of main effects
 
     #Simulate model matrix for MEs and CMEs
-    rho <- 0.5 #correlation
+    set.seed(1)
+    rho <- 0.25 #correlation
     ones <- matrix(1,p,p)
     covmtx <- rho*ones+(1-rho)*diag(p)
     latmtx <- mvrnorm(n,p,mu=rep(0,p),Sigma=covmtx) #equicorrelated cov. matrix
