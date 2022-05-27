@@ -19,16 +19,17 @@
 }
 
 \examples{
-    library(MASS)
-    n <- 50 #number of observations
-    p <- 50 #number of main effects
+library(MASS)
+n <- 50 #number of observations
+p <- 50 #number of main effects
 
-    #Simulate model matrix for MEs and CMEs
-    set.seed(1)
-    rho <- 0.25 #correlation
-    ones <- matrix(1,p,p)
-    covmtx <- rho*ones+(1-rho)*diag(p)
-    latmtx <- mvrnorm(n,p,mu=rep(0,p),Sigma=covmtx) #equicorrelated cov. matrix
-    memtx <- (latmtx>=0)-(latmtx<0) #simulate model matrix for MEs
-    model.mtx <- full.model.mtx(memtx)$model.mtx #generate model matrix for MEs and CMEs
+## Simulate model matrix for MEs and CMEs
+set.seed(1)
+rho <- 0 #correlation
+ones <- matrix(1,p,p)
+covmtx <- rho*ones+(1-rho)*diag(p)
+latmtx <- mvrnorm(n,p,mu=rep(0,p),Sigma=covmtx) #equicorrelated cov. matrix
+memtx <- (latmtx>=0)-(latmtx<0) #simulate model matrix for MEs
+model.mtx <- full.model.mtx(memtx)$model.mtx #generate model matrix for MEs and CMEs
+
 }

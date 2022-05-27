@@ -268,7 +268,7 @@ bool coord_des_onerun(int pme, int nn, NumericVector& lambda, NumericVector& cur
         inprod += (resid[k]*X_me[j*nn+k]);
       }
       // inprod = inprod/((double)nn)+beta_me[j];
-      inprod = inprod/((double)nn)+(((double)nn)-1)/((double)nn)*beta_me[j];
+      inprod = inprod/((double)nn)+(((double)nn)-1)/((double)nn)*beta_me[j]; //checked to pod from update eqn (mod from above eqn)
 
       //Update cur_delta
       cur_delta[0] = delta_sib[j];
@@ -610,16 +610,16 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
         }
       }
 
-      // // // RESET AFTER EACH RUN
-      // for (int i=0;i<pme;i++){//reset beta
-      //   beta_me[i] = 0.0;
-      // }
-      // for (int i=0;i<pcme;i++){
-      //   beta_cme[i] = 0.0;
-      // }
-      // for (int i=0;i<nn;i++){//reset residuals
-      //   resid[i] = yy(i) - ymean;
-      // }
+      // // RESET AFTER EACH RUN
+      for (int i=0;i<pme;i++){//reset beta
+        beta_me[i] = 0.0;
+      }
+      for (int i=0;i<pcme;i++){
+        beta_cme[i] = 0.0;
+      }
+      for (int i=0;i<nn;i++){//reset residuals
+        resid[i] = yy(i) - ymean;
+      }
 
       //Recompute deltas
       fill(delta_sib.begin(),delta_sib.end(),lambda[0]);
@@ -646,7 +646,7 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
         //Active set reset for it_warm iterations
         for (int m=0; m<it_warm; m++){
           chng_flag = coord_des_onerun(pme, nn, lambda, cur_delta, chng_flag, tau, gamma, X_me, X_cme,
-                           delta_sib, delta_cou, act_me, act_cme, beta_me, beta_cme, resid);
+                                       delta_sib, delta_cou, act_me, act_cme, beta_me, beta_cme, resid);
         }
 
         //Update active set
@@ -681,19 +681,23 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
           //Increment count and update flags
           it_inner ++;
           chng_flag = coord_des_onerun(pme, nn, lambda, cur_delta, chng_flag, tau, gamma, X_me, X_cme,
-                           delta_sib, delta_cou, act_me, act_cme, beta_me, beta_cme, resid);
+                                       delta_sib, delta_cou, act_me, act_cme, beta_me, beta_cme, resid);
 
           //Update cont flag for termination
           if ( (it_inner >= it_max_reset)||(!chng_flag) ){
             cont = false;
           }
         }//end while
+
+        // Rcout << accumulate(act_me.begin(),act_me.end(),0) << endl;
+        // Rcout << accumulate(act_cme.begin(),act_cme.end(),0) << endl;
+
       }
 
       cycend:
 
-      //Copy into beta_mat, and warm-start next cycle
-      int betacount = 0;
+        //Copy into beta_mat, and warm-start next cycle
+        int betacount = 0;
       int betanz = 0;
       for (int k=0;k<pme;k++){
         if (abs(beta_me[k])>0.0){
@@ -724,10 +728,12 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
 
       //Copy screening data
       for (int k=0;k<pme;k++){
-        scr_mat(k,a) = scr_me[k];
+        // scr_mat(k,a) = scr_me[k];
+        scr_mat(k,a) = act_me[k];
       }
       for (int k=0;k<pcme;k++){
-        scr_mat(pme+k,a) = scr_cme[k];
+        // scr_mat(pme+k,a) = scr_cme[k];
+        scr_mat(pme+k,a) = act_cme[k];
       }
 
     }//end nlambda.sib (a)
@@ -762,6 +768,7 @@ List cme(NumericMatrix& XX_me, NumericMatrix& XX_cme, NumericVector& yy,
                        // Named("nzero") = nz,
                        Named("lambda_sib") = lambda_sib_vec,
                        Named("lambda_cou") = lambda_cou_vec,
+                       Named("act") = scr_cube,
                        Named("gamma") = gamma,
                        Named("tau") = tau,
                        Named("y") = yy

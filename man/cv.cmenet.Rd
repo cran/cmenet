@@ -49,9 +49,8 @@ n <- 50 #number of observations
 p <- 50 #number of main effects
 
 ## Simulate model matrix for MEs and CMEs
-sd <- 1
-set.seed(sd)
-rho <- 0.25 #correlation
+set.seed(1)
+rho <- 0 #correlation
 ones <- matrix(1,p,p)
 covmtx <- rho*ones+(1-rho)*diag(p)
 latmtx <- mvrnorm(n,p,mu=rep(0,p),Sigma=covmtx) #equicorrelated cov. matrix
@@ -80,7 +79,6 @@ xcme <- model.mtx[,(p+1):ncol(model.mtx)]
 #---------------------------------------------------------------
 
 ## cmenet (parameters tuned via cross-validation)
-set.seed(sd)
 cv.cme <- cv.cmenet(xme, xcme, y, var.names=colnames(model.mtx))
 fit.cme <- cv.cme$cme.fit
 sel.cme <- cv.cme$select.idx
@@ -91,7 +89,6 @@ colnames(model.mtx)[setdiff(ind,sel.cme)] #true effects not in selected model
 
 ## lasso
 library(glmnet)
-set.seed(sd)
 cv.las <- cv.glmnet(cbind(xme,xcme),y)
 fit.las <- glmnet(cbind(xme,xcme),y)
 sel.las <- which(fit.las$beta[,which(cv.las$lambda==cv.las$lambda.min)]!=0)
@@ -102,7 +99,6 @@ colnames(model.mtx)[setdiff(ind,sel.las)] #true effects not in selected model
 
 ## sparsenet
 library(sparsenet)
-set.seed(sd)
 cv.sn <- cv.sparsenet(cbind(xme,xcme),y)
 fit.sn <- sparsenet(cbind(xme,xcme),y)
 sel.sn <- which(fit.sn$coefficients[[cv.sn$which.min[2]]]$beta[,cv.sn$which.min[1]]!=0)
@@ -116,29 +112,28 @@ colnames(model.mtx)[setdiff(ind,sel.sn)] #true effects not in selected model
 #---------------------------------------------------------------
 
 ## (a) Misspecifications
-length(setdiff(sel.cme,ind)) + length(setdiff(ind,sel.cme)) # cmenet:    29
-length(setdiff(sel.las,ind)) + length(setdiff(ind,sel.las)) # lasso:     57
-length(setdiff(sel.sn,ind)) + length(setdiff(ind,sel.sn))   # sparsenet: 77
+length(setdiff(sel.cme,ind)) + length(setdiff(ind,sel.cme)) # cmenet:    25
+length(setdiff(sel.las,ind)) + length(setdiff(ind,sel.las)) # lasso:     29
+length(setdiff(sel.sn,ind)) + length(setdiff(ind,sel.sn))   # sparsenet: 60
 
 ## (b) MSPE
-set.seed(2)
-ntst <- 1000
+set.seed(1000)
+ntst <- 20
 latmtx <- mvrnorm(ntst,p,mu=rep(0,p),Sigma=covmtx)
 memtx <- (latmtx>=0)-(latmtx<0)
 tst.mtx <- full.model.mtx(memtx)$model.mtx
 xbtst <- inter + rowSums(tst.mtx[,ind])
 ytst <- xbtst + rnorm(ntst,sd=1)
 
-pred.cme <- predictcme(fit.cme,newx=tst.mtx)
-pred.cme <- pred.cme[,which(cv.cme$lambda.sib==cv.cme$params[1]),
-                     which(cv.cme$lambda.cou==cv.cme$params[2])]
+pred.cme <- predictcme(fit.cme,newx=tst.mtx)[,which(cv.cme$lambda.sib==cv.cme$params[1]),
+            which(cv.cme$lambda.cou==cv.cme$params[2])]
 pred.las <- predict(fit.las,newx=tst.mtx)[,which(cv.las$lambda==cv.las$lambda.min)]
-pred.sn <- predict(fit.sn,newx=tst.mtx)
-pred.sn <- pred.sn[[which(fit.sn$gamma==cv.sn$parms.min[1])]][,
-                    which(fit.sn$lambda==cv.sn$parms.min[2])]
-mean( (ytst-pred.cme)^2 ) # cmenet:    5.37
-mean( (ytst-pred.las)^2 ) # lasso:     5.72
-mean( (ytst-pred.sn)^2 )  # sparsenet: 5.66
+pred.sn <- predict(fit.sn,newx=tst.mtx)[[which(fit.sn$gamma==cv.sn$parms.min[1])]][,
+           which(fit.sn$lambda==cv.sn$parms.min[2])]
+mean( (ytst-pred.cme)^2 ) # cmenet:    3.61
+mean( (ytst-pred.las)^2 ) # lasso:     4.22
+mean( (ytst-pred.sn)^2 )  # sparsenet: 4.00
+
 
   }
 }

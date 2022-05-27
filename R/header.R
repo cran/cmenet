@@ -98,7 +98,7 @@ cmenet <- function(xme, xcme, y,
   ret <- cme(xme.sc, xcme.sc, y,
              lambda.sib, lambda.cou, gamma, tau,
              xme.sl, xcme.sl, beta0, act.vec,
-             max.lambda, it.max, 0, 1, F)
+             max.lambda, it.max, 3, 1, F)
 
   #Compute intercept
   if (lambda.flg){
@@ -143,12 +143,14 @@ cv.cmenet <- function(xme, xcme, y,
   xmat <- cbind(xme,xcme) #Full model matrix
 
   # Warm start active set:
-  act.vec <- rep(1,ncol(xme)+ncol(xcme))
+  act.vec <- rep(-1,ncol(xme)+ncol(xcme)) #warm starts
+  # act.vec <- rep(1,ncol(xme)+ncol(xcme)) #all variables
   if (warm.str=="lasso"){
     cvlas <- cv.glmnet(cbind(xme,xcme),y)
     lasfit <- glmnet(cbind(xme,xcme),y)
     # lasind <- which(lasfit$beta[,which(cvlas$lambda==cvlas$lambda.min)]!=0)
     lasind <- which(lasfit$beta[,which(cvlas$lambda==cvlas$lambda.1se)]!=0)
+    # lasind <- which(lasfit$beta[,ncol(lasfit$beta)]!=0)
     act.vec <- rep(-1,ncol(xme)+ncol(xcme))
     act.vec[lasind] <- 1
   }else if (warm.str=="hierNet"){
@@ -207,6 +209,9 @@ cv.cmenet <- function(xme, xcme, y,
   }
 
   # Initialize lambda vector
+  # xme.sc <- scale(xme,center=T,scale=T)
+  # xcme.sc <- scale(xcme,center=T,scale=T)
+  # max.lambda <- lambda0.cme(cbind(xme.sc,xcme.sc),y)
   max.lambda <- lambda0.cme(cbind(xme,xcme),y)
   lambda.sib <- exp(seq(from = log(max.lambda), to = log(max.lambda * lambda.min.ratio), length = nlambda.sib))
   lambda.cou <- exp(seq(from = log(max.lambda), to = log(max.lambda * lambda.min.ratio), length = nlambda.cou))
@@ -306,7 +311,7 @@ cv.cmenet <- function(xme, xcme, y,
   ##Summarize into list
   obj = list(y=y, lambda.sib = lambda.sib, lambda.cou = lambda.cou,
              gamma = gamma_vec, tau = tau_vec,
-             cvm.gt = cvm.gt.bst, cvm.lambda = cvm.lambda.bst)
+             cvm.gt = cvm.gt, cvm.lambda = cvm.lambda)
   obj$params = parms.min
   names(obj$params) <- c("lambda.sib","lambda.cou","gamma","tau")
 
@@ -337,4 +342,3 @@ argmin <- function (x){ #function from package "sparsenet"
     c(c1, c2)
   }
 }
-
